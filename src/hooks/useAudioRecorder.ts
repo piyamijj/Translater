@@ -182,9 +182,32 @@ export function useAudioRecorder(options: UseAudioRecorderOptions): UseAudioReco
       startLevelLoop(analyser);
       setIsRecording(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Mikrofon erişimi reddedildi veya kullanılamıyor.'
-      );
+      // Translate the raw DOMException into a message that actually tells
+      // the user (and us, in bug reports) what happened — the browser/WebView's
+      // own err.message ("Permission denied") is the same generic string for
+      // several very different underlying causes, which made this bug hard
+      // to diagnose. err.name is the reliable signal.
+      const name = err instanceof DOMException ? err.name : undefined;
+      let message: string;
+      switch (name) {
+        case 'NotAllowedError':
+          message =
+            'Mikrofon izni verilmedi. Lütfen izin isteğini onaylayın; yanlışlıkla reddettiyseniz telefonun Ayarlar > Uygulamalar > PolyGlot Live AI > İzinler bölümünden mikrofonu elle açabilirsiniz.';
+          break;
+        case 'NotFoundError':
+          message = 'Cihazda kullanılabilir bir mikrofon bulunamadı.';
+          break;
+        case 'NotReadableError':
+          message = 'Mikrofona ulaşılamadı — başka bir uygulama mikrofonu kullanıyor olabilir.';
+          break;
+        case 'SecurityError':
+          message = 'Güvenli olmayan bir bağlantı üzerinden mikrofona erişilemez.';
+          break;
+        default:
+          message =
+            err instanceof Error ? err.message : 'Mikrofon erişimi reddedildi veya kullanılamıyor.';
+      }
+      setError(message);
       cleanupAudioGraph();
     }
   }, [beginNewRecorderSegment, cleanupAudioGraph, mode, startLevelLoop]);
