@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PolyGlot Live AI</string>
+    <string name="title_activity_main">PolyGlot Live AI</string>
+    <string name="package_name">com.canlisohbet.polyglotlive</string>
+    <string name="custom_url_scheme">com.canlisohbet.polyglotlive</string>
+</resources>
