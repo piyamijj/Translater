@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { Mic, Radio, AlertTriangle, KeyRound } from 'lucide-react';
+import { Mic, Radio, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { SettingsModal } from '@/components/SettingsModal';
@@ -18,7 +18,6 @@ export default function HomePage() {
   const setCaptureMode = usePolyGlotStore((s) => s.setCaptureMode);
   const isProcessing = usePolyGlotStore((s) => s.isProcessing);
   const transcript = usePolyGlotStore((s) => s.transcript);
-  const hasAnyApiKey = usePolyGlotStore((s) => s.hasAnyApiKey());
   const silenceTimeoutMs = usePolyGlotStore((s) => s.silenceTimeoutMs);
   const vadSensitivity = usePolyGlotStore((s) => s.vadSensitivity);
 
@@ -67,13 +66,6 @@ export default function HomePage() {
           <SettingsModal />
         </div>
       </header>
-
-      {!hasAnyApiKey && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-          <KeyRound className="h-4 w-4 shrink-0" />
-          Çeviriye başlamak için Ayarlar&apos;dan bir API anahtarı ekleyin (Gemini, Groq veya OpenAI).
-        </div>
-      )}
 
       {(error || lastError) && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -147,7 +139,6 @@ export default function HomePage() {
           <motion.div animate={{ scale: 1 + audioLevel * 0.15 }} transition={{ duration: 0.08 }}>
             <Button
               size="icon"
-              disabled={!hasAnyApiKey}
               onMouseDown={handleMicPress}
               onMouseUp={handleMicRelease}
               onTouchStart={(e) => {

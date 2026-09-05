@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { usePolyGlotStore } from '@/lib/store';
-import { translateWithFallback } from '@/lib/ai/provider-factory';
+import { translateWithFallback, translateViaServerDefault } from '@/lib/ai/provider-factory';
 import { speak } from '@/lib/tts';
 
 export interface UseTranslationResult {
@@ -26,6 +26,7 @@ export function useTranslation(): UseTranslationResult {
     ttsEnabled,
     setIsProcessing,
     addTranscriptEntry,
+    hasAnyApiKey,
   } = usePolyGlotStore();
 
   const processChunk = useCallback(
@@ -37,11 +38,20 @@ export function useTranslation(): UseTranslationResult {
       setLastError(null);
 
       try {
-        const result = await translateWithFallback(activeProvider, apiKeys, {
-          audioBlob: blob,
-          mimeType,
-          targetLanguage,
-        });
+        // Zero-setup by default: only switch to the user's own key(s) once
+        // they've actually entered one in Settings (an optional, advanced
+        // override) — otherwise use the app's baked-in server-side default.
+        const result = hasAnyApiKey()
+          ? await translateWithFallback(activeProvider, apiKeys, {
+              audioBlob: blob,
+              mimeType,
+              targetLanguage,
+            })
+          : await translateViaServerDefault(activeProvider, {
+              audioBlob: blob,
+              mimeType,
+              targetLanguage,
+            });
 
         if (!result.sourceText && !result.translatedText) return; // silence, skip
 
@@ -66,7 +76,7 @@ export function useTranslation(): UseTranslationResult {
         if (inFlightRef.current <= 0) setIsProcessing(false);
       }
     },
-    [apiKeys, activeProvider, targetLanguage, ttsEnabled, setIsProcessing, addTranscriptEntry]
+    [apiKeys, activeProvider, targetLanguage, ttsEnabled, setIsProcessing, addTranscriptEntry, hasAnyApiKey]
   );
 
   return { processChunk, lastError };

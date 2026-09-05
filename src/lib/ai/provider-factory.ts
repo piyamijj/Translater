@@ -102,3 +102,46 @@ export async function translateWithFallback(
 export function getProviderAdapter(id: AIProviderId): AIProviderAdapter {
   return registry[id];
 }
+
+/**
+ * Zero-setup path: calls the server's /api/translate-audio route, which
+ * uses the app's own baked-in default Gemini/Groq keys (Vercel project env
+ * vars) — no user-supplied key required at all. This is what the app uses
+ * out of the box; translateWithFallback (direct client-side calls with a
+ * user's own key) only kicks in once the user has entered a key of their
+ * own in Settings, as an optional advanced override.
+ */
+export async function translateViaServerDefault(
+  preferredProvider: AIProviderId,
+  request: Omit<TranslateAudioParams, 'apiKey'>
+): Promise<TranslateAudioResult & { providerUsed: 'gemini' | 'groq' }> {
+  const form = new FormData();
+  form.append('audio', request.audioBlob, 'chunk');
+  form.append('mimeType', request.mimeType);
+  form.append('targetLanguage', request.targetLanguage);
+  // The server route only knows gemini/groq (both have baked-in default
+  // keys); an OpenAI preference falls back to gemini for the default path.
+  form.append('provider', preferredProvider === 'groq' ? 'groq' : 'gemini');
+
+  const res = await fetch('/api/translate-audio', {
+    method: 'POST',
+    body: form,
+    signal: request.signal,
+  });
+
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({}) as { error?: string });
+    throw new ProviderError(
+      errJson.error ?? `Sunucu isteği başarısız oldu (${res.status})`,
+      'server-default'
+    );
+  }
+
+  const json = await res.json();
+  return {
+    sourceText: json.sourceText ?? '',
+    sourceLangGuess: json.sourceLangGuess ?? null,
+    translatedText: json.translatedText ?? '',
+    providerUsed: json.providerUsed ?? 'gemini',
+  };
+}

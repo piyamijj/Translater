@@ -6,7 +6,7 @@ import { getLanguageByCode } from '../languages';
 /**
  * Groq adapter — two-stage pipeline:
  *   1) whisper-large-v3 transcribes the raw audio (auto-detects source language).
- *   2) llama-3.3-70b-versatile translates the transcript into the target language.
+ *   2) openai/gpt-oss-120b translates the transcript into the target language.
  * Both calls run client-side against Groq's OpenAI-compatible REST API using the
  * user's own key (dangerouslyAllowBrowser — this is a BYOK app, key never leaves
  * the browser except straight to Groq).
@@ -47,7 +47,7 @@ export const groqAdapter: AIProviderAdapter = {
 
       const chat = await client.chat.completions.create(
         {
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-120b',
           temperature: 0.2,
           messages: [
             {

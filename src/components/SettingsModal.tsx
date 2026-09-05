@@ -83,7 +83,8 @@ export function SettingsModal() {
         <DialogHeader>
           <DialogTitle>Ayarlar</DialogTitle>
           <DialogDescription>
-            Kendi AI sağlayıcı anahtarlarınızı ve kayıt tercihlerinizi yapılandırın.
+            Uygulama hiçbir ayar yapılmadan çalışır. Aşağıdakiler yalnızca isteğe bağlı
+            gelişmiş tercihlerdir.
           </DialogDescription>
         </DialogHeader>
 
@@ -91,14 +92,16 @@ export function SettingsModal() {
           <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
             <p>
-              API anahtarlarınız yalnızca bu tarayıcının yerel depolama alanında saklanır.
-              Doğrudan ilgili sağlayıcının kendi API&apos;sine gönderilir; hiçbir zaman
-              kaydedilmez veya başka bir sunucuya iletilmez.
+              Uygulama, kurulumu tamamen size ait olan varsayılan bir AI yapılandırmasıyla
+              gelir — hiçbir şey girmenize gerek yok. Kendi API anahtarınızı girmek
+              isterseniz (isteğe bağlı), bu anahtar yalnızca bu tarayıcının yerel depolama
+              alanında saklanır ve doğrudan ilgili sağlayıcının kendi API&apos;sine
+              gönderilir; hiçbir zaman kaydedilmez veya başka bir sunucuya iletilmez.
             </p>
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold">AI Sağlayıcıları</h3>
+            <h3 className="text-sm font-semibold">AI Sağlayıcıları (isteğe bağlı)</h3>
             {PROVIDERS.map((p) => (
               <ApiKeyField key={p.id} provider={p.id} label={p.label} helpUrl={p.helpUrl} />
             ))}
