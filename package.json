@@ -1,6 +1,6 @@
 {
   "name": "polyglot-live-ai",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "PolyGlot Live AI — ultra-low-latency real-time voice translator (web + Android)",
   "scripts": {

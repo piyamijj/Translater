@@ -49,10 +49,17 @@ export const groqAdapter: AIProviderAdapter = {
         {
           model: 'openai/gpt-oss-120b',
           temperature: 0.2,
+          max_tokens: 1024,
           messages: [
             {
               role: 'system',
-              content: `You are a professional simultaneous interpreter. Translate the user's message into ${lang.label} (${lang.nativeLabel}). Reply with ONLY the translated text, no quotes, no explanation, no source-language repetition.`,
+              content: [
+                `You are a professional simultaneous interpreter. Translate the user's message into ${lang.label} (${lang.nativeLabel}).`,
+                'Rules: (1) Always produce a complete translation, even for short or fragmentary text — never skip it. ',
+                '(2) Never reply with the input unchanged unless it is already written in the target language. ',
+                '(3) Translate the full message end to end — never truncate or summarize partway. ',
+                'Reply with ONLY the translated text, no quotes, no explanation, no source-language repetition.',
+              ].join(''),
             },
             { role: 'user', content: sourceText },
           ],

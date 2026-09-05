@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import type { AIProviderAdapter, TranslateAudioParams, TranslateAudioResult } from './types';
 import { ProviderError } from './types';
 import { getLanguageByCode } from '../languages';
@@ -24,15 +24,19 @@ async function blobToBase64(blob: Blob): Promise<string> {
 function buildPrompt(targetLanguage: string): string {
   const lang = getLanguageByCode(targetLanguage);
   return [
-    `You are a real-time speech translation engine.`,
-    `Listen to the attached audio clip and respond with ONLY a compact JSON object`,
-    `(no markdown fences, no commentary) with exactly these keys:`,
-    `{"source_text": string, "source_lang": string, "translated_text": string}`,
+    `You are a real-time speech translation engine. Detect the spoken language yourself — never assume it matches the target language.`,
+    `Listen to the attached audio clip and respond with ONLY a JSON object matching the given schema.`,
     ``,
-    `- "source_text": verbatim transcription of the speech in its original language.`,
+    `- "source_text": verbatim transcription of the speech in its ORIGINAL language, exactly as spoken.`,
     `- "source_lang": your best guess at the spoken language, as an ISO 639-1 code or short name.`,
-    `- "translated_text": natural, fluent translation of the speech into ${lang.label} (${lang.nativeLabel}).`,
-    `If the audio is silent or unintelligible, return empty strings for all three fields.`,
+    `- "translated_text": a COMPLETE, natural, fluent translation of the ENTIRE utterance into ${lang.label} (${lang.nativeLabel}).`,
+    ``,
+    `Hard rules — follow every one of these:`,
+    `1. ALWAYS produce a translation, even for very short clips, single words, or ambiguous fragments. Do your best rather than skipping it.`,
+    `2. NEVER copy "source_text" into "translated_text" unchanged. The only exception is when the speech is ALREADY in the target language — in that case translated_text may equal source_text verbatim.`,
+    `3. Translate the FULL sentence, start to finish. Never stop partway, never drop the ending, never summarize — a short input still gets a complete, un-truncated translation.`,
+    `4. If you are unsure of the exact source language, still make your best-effort translation into the target language rather than leaving it untranslated.`,
+    `If the audio is truly silent with no speech at all, return empty strings for all three fields.`,
   ].join('\n');
 }
 
@@ -68,7 +72,24 @@ export const geminiAdapter: AIProviderAdapter = {
             ],
           },
         ],
-        config: { temperature: 0.2 },
+        config: {
+          temperature: 0.2,
+          // gemini-flash-latest has "thinking" on by default, which eats into
+          // the output token budget and was truncating short translations —
+          // this is a fast, deterministic task with no need for it.
+          thinkingConfig: { thinkingBudget: 0 },
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              source_text: { type: Type.STRING },
+              source_lang: { type: Type.STRING },
+              translated_text: { type: Type.STRING },
+            },
+            required: ['source_text', 'source_lang', 'translated_text'],
+          },
+        },
       });
 
       // Respect cancellation even though the SDK call above isn't itself abortable.

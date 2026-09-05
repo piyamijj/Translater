@@ -74,15 +74,19 @@ async function translateWithGemini(
   const base64Audio = arrayBufferToBase64(audioBuffer);
 
   const prompt = [
-    'You are a real-time speech translation engine.',
-    'Listen to the attached audio clip and respond with ONLY a compact JSON object',
-    '(no markdown fences, no commentary) with exactly these keys:',
-    '{"source_text": string, "source_lang": string, "translated_text": string}',
+    'You are a real-time speech translation engine. Detect the spoken language yourself — never assume it matches the target language.',
+    'Listen to the attached audio clip and respond with ONLY a JSON object matching the given schema.',
     '',
-    '- "source_text": verbatim transcription of the speech in its original language.',
+    '- "source_text": verbatim transcription of the speech in its ORIGINAL language, exactly as spoken.',
     '- "source_lang": your best guess at the spoken language, as an ISO 639-1 code or short name.',
-    `- "translated_text": natural, fluent translation of the speech into the language with code "${targetLanguage}".`,
-    'If the audio is silent or unintelligible, return empty strings for all three fields.',
+    `- "translated_text": a COMPLETE, natural, fluent translation of the ENTIRE utterance into the language with code "${targetLanguage}".`,
+    '',
+    'Hard rules — follow every one of these:',
+    '1. ALWAYS produce a translation, even for very short clips, single words, or ambiguous fragments. Do your best rather than skipping it.',
+    '2. NEVER copy "source_text" into "translated_text" unchanged. The only exception is when the speech is ALREADY in the target language — in that case translated_text may equal source_text verbatim.',
+    '3. Translate the FULL sentence, start to finish. Never stop partway, never drop the ending, never summarize — a short input still gets a complete, un-truncated translation.',
+    '4. If you are unsure of the exact source language, still make your best-effort translation into the target language rather than leaving it untranslated.',
+    'If the audio is truly silent with no speech at all, return empty strings for all three fields.',
   ].join('\n');
 
   const res = await fetch(
@@ -100,7 +104,24 @@ async function translateWithGemini(
             ],
           },
         ],
-        generationConfig: { temperature: 0.2 },
+        generationConfig: {
+          temperature: 0.2,
+          // gemini-flash-latest has "thinking" on by default, which eats into
+          // the output token budget and was truncating short translations —
+          // this is a fast, deterministic task with no need for it.
+          thinkingConfig: { thinkingBudget: 0 },
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              source_text: { type: 'STRING' },
+              source_lang: { type: 'STRING' },
+              translated_text: { type: 'STRING' },
+            },
+            required: ['source_text', 'source_lang', 'translated_text'],
+          },
+        },
       }),
     }
   );
@@ -158,10 +179,17 @@ async function translateWithGroq(
     body: JSON.stringify({
       model: 'openai/gpt-oss-120b',
       temperature: 0.2,
+      max_tokens: 1024,
       messages: [
         {
           role: 'system',
-          content: `You are a professional simultaneous interpreter. Translate the user's message into the language with code "${targetLanguage}". Reply with ONLY the translated text, no quotes, no explanation.`,
+          content: [
+            `You are a professional simultaneous interpreter. Translate the user's message into the language with code "${targetLanguage}".`,
+            'Rules: (1) Always produce a complete translation, even for short or fragmentary text — never skip it. ',
+            '(2) Never reply with the input unchanged unless it is already written in the target language. ',
+            '(3) Translate the full message end to end — never truncate or summarize partway. ',
+            'Reply with ONLY the translated text, no quotes, no explanation.',
+          ].join(''),
         },
         { role: 'user', content: sourceText },
       ],
