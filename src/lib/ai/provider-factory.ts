@@ -133,6 +133,29 @@ async function safeReadJson(res: Response): Promise<Record<string, unknown>> {
   }
 }
 
+// The Android APK is a Capacitor STATIC export — it has no Next.js server of
+// its own, so it is served from a fake local origin (e.g. https://localhost)
+// inside the WebView. A relative fetch('/api/translate-audio') from there
+// resolves against that fake origin and fails outright (nothing listens on
+// it) — it must instead point at the real, deployed Vercel origin. The web
+// app, by contrast, IS served by that Next.js server, so a relative path is
+// correct there (and works on any preview/custom domain without hardcoding).
+const PRODUCTION_API_ORIGIN = 'https://polyglot-live-ai.vercel.app';
+
+async function isNativeApp(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+}
+
+async function zeroSetupEndpoint(): Promise<string> {
+  return (await isNativeApp()) ? `${PRODUCTION_API_ORIGIN}/api/translate-audio` : '/api/translate-audio';
+}
+
 export async function translateViaServerDefault(
   preferredProvider: AIProviderId,
   request: Omit<TranslateAudioParams, 'apiKey'>
@@ -147,7 +170,8 @@ export async function translateViaServerDefault(
 
   let res: Response;
   try {
-    res = await fetch('/api/translate-audio', {
+    const endpoint = await zeroSetupEndpoint();
+    res = await fetch(endpoint, {
       method: 'POST',
       body: form,
       signal: request.signal,

@@ -1,5 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// The Android APK (Capacitor static export) calls this route as an ABSOLUTE
+// cross-origin URL (see PRODUCTION_API_ORIGIN in provider-factory.ts) from
+// the WebView's own fake local origin — without these headers the browser
+// engine would block the app's JS from reading the response even though the
+// request itself succeeds. Not a sensitive endpoint (no auth/cookies), so a
+// permissive origin is fine.
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+function jsonWithCors(body: unknown, init?: { status?: number }) {
+  return NextResponse.json(body, { ...init, headers: CORS_HEADERS });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 // Node.js serverless runtime (not `edge`): we may sequentially retry several
 // API keys across two providers on a rate-limit, and Node functions support a
 // real configurable duration budget (`maxDuration`) — the edge runtime's much
@@ -320,7 +340,7 @@ export async function POST(req: NextRequest) {
     try {
       form = await req.formData();
     } catch {
-      return NextResponse.json({ error: 'Geçersiz form verisi' }, { status: 400 });
+      return jsonWithCors({ error: 'Geçersiz form verisi' }, { status: 400 });
     }
 
     const audio = form.get('audio');
@@ -331,14 +351,14 @@ export async function POST(req: NextRequest) {
     const overrideApiKey = overrideApiKeyRaw ? String(overrideApiKeyRaw) : undefined;
 
     if (!audio || !(audio instanceof Blob)) {
-      return NextResponse.json({ error: 'Ses verisi eksik' }, { status: 400 });
+      return jsonWithCors({ error: 'Ses verisi eksik' }, { status: 400 });
     }
 
     let audioBuffer: ArrayBuffer;
     try {
       audioBuffer = await audio.arrayBuffer();
     } catch {
-      return NextResponse.json({ error: 'Ses verisi okunamadı' }, { status: 400 });
+      return jsonWithCors({ error: 'Ses verisi okunamadı' }, { status: 400 });
     }
 
     const geminiPool = parseKeyPool(process.env.GEMINI_API_KEYS, process.env.GEMINI_API_KEY);
@@ -357,7 +377,7 @@ export async function POST(req: NextRequest) {
           const result = await tryKeyPool(geminiKeys, (key) =>
             translateWithGeminiOnce(audioBuffer, mimeType, targetLanguage, key)
           );
-          if (result.sourceText || result.translatedText) return NextResponse.json(result);
+          if (result.sourceText || result.translatedText) return jsonWithCors(result);
           lastError = new Error('Gemini boş sonuç döndürdü');
           continue;
         }
@@ -365,7 +385,7 @@ export async function POST(req: NextRequest) {
           const result = await tryKeyPool(groqKeys, (key) =>
             translateWithGroqOnce(new Blob([audioBuffer], { type: mimeType }), mimeType, targetLanguage, key)
           );
-          if (result.sourceText || result.translatedText) return NextResponse.json(result);
+          if (result.sourceText || result.translatedText) return jsonWithCors(result);
           lastError = new Error('Groq boş sonuç döndürdü');
           continue;
         }
@@ -374,7 +394,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(
+    return jsonWithCors(
       {
         error:
           lastError instanceof Error
@@ -386,7 +406,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // Absolute last resort — should be unreachable given the structure above,
     // but guarantees a JSON body no matter what.
-    return NextResponse.json(
+    return jsonWithCors(
       { error: err instanceof Error ? err.message : 'Sunucuda beklenmeyen bir hata oluştu.' },
       { status: 500 }
     );
