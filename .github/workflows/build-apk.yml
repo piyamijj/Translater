@@ -40,7 +40,14 @@ jobs:
         id: gen_android
         run: |
           if [ ! -d "android/app" ]; then
-            echo "android/app not found — generating native project via Capacitor CLI"
+            # `cap add android` refuses to run if an `android/` directory
+            # exists at all (even an empty or non-Capacitor one), so clear
+            # any stray leftovers before generating a fresh project.
+            if [ -d "android" ]; then
+              echo "Removing incomplete android/ directory before generating"
+              rm -rf android
+            fi
+            echo "generating native project via Capacitor CLI"
             npx cap add android
             echo "generated=true" >> "$GITHUB_OUTPUT"
           else
