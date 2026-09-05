@@ -111,6 +111,28 @@ export function getProviderAdapter(id: AIProviderId): AIProviderAdapter {
  * user's own key) only kicks in once the user has entered a key of their
  * own in Settings, as an optional advanced override.
  */
+/**
+ * Reads a fetch Response as JSON, but never throws a raw parser exception.
+ * A crashed/timed-out serverless function, a proxy error page, or any other
+ * infrastructure hiccup can come back as an HTML error page instead of JSON
+ * (e.g. Vercel's own timeout page) — if that ever slips past res.ok checks,
+ * a plain `res.json()` throws a cryptic "Unexpected token '<'..." SyntaxError
+ * that would otherwise surface verbatim to the end user. This always returns
+ * a plain object instead, using the content-type as a first signal and
+ * falling back to a safe try/catch either way.
+ */
+async function safeReadJson(res: Response): Promise<Record<string, unknown>> {
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    return {};
+  }
+  try {
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 export async function translateViaServerDefault(
   preferredProvider: AIProviderId,
   request: Omit<TranslateAudioParams, 'apiKey'>
@@ -123,25 +145,41 @@ export async function translateViaServerDefault(
   // keys); an OpenAI preference falls back to gemini for the default path.
   form.append('provider', preferredProvider === 'groq' ? 'groq' : 'gemini');
 
-  const res = await fetch('/api/translate-audio', {
-    method: 'POST',
-    body: form,
-    signal: request.signal,
-  });
+  let res: Response;
+  try {
+    res = await fetch('/api/translate-audio', {
+      method: 'POST',
+      body: form,
+      signal: request.signal,
+    });
+  } catch (err) {
+    // Network-level failure (offline, DNS, aborted) — never a raw browser error.
+    throw new ProviderError('Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.', 'server-default', err);
+  }
 
   if (!res.ok) {
-    const errJson = await res.json().catch(() => ({}) as { error?: string });
+    const errJson = await safeReadJson(res);
+    const message = typeof errJson.error === 'string' ? errJson.error : '';
     throw new ProviderError(
-      errJson.error ?? `Sunucu isteği başarısız oldu (${res.status})`,
+      message || `Sunucu isteği başarısız oldu (${res.status})`,
       'server-default'
     );
   }
 
-  const json = await res.json();
+  const json = await safeReadJson(res);
+  // A silent/unintelligible clip legitimately comes back with empty strings
+  // for both fields (by design — see the route's prompt) — that is NOT an
+  // error. What IS an error is the response having none of the expected
+  // keys at all, which only happens when safeReadJson had to fall back to
+  // `{}` (non-JSON body / parse failure) despite res.ok being true.
+  if (!('sourceText' in json) && !('translatedText' in json)) {
+    throw new ProviderError('Sunucudan geçerli bir yanıt alınamadı, lütfen tekrar deneyin.', 'server-default');
+  }
+
   return {
-    sourceText: json.sourceText ?? '',
-    sourceLangGuess: json.sourceLangGuess ?? null,
-    translatedText: json.translatedText ?? '',
-    providerUsed: json.providerUsed ?? 'gemini',
+    sourceText: typeof json.sourceText === 'string' ? json.sourceText : '',
+    sourceLangGuess: typeof json.sourceLangGuess === 'string' ? json.sourceLangGuess : null,
+    translatedText: typeof json.translatedText === 'string' ? json.translatedText : '',
+    providerUsed: json.providerUsed === 'groq' ? 'groq' : 'gemini',
   };
 }
