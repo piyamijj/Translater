@@ -1,0 +1,19 @@
+{
+  "appId": "com.canlisohbet.polyglotlive",
+  "appName": "PolyGlot Live AI",
+  "webDir": "out",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#0B0B0F",
+      "showSpinner": false
+    }
+  }
+}

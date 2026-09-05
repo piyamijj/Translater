@@ -1,0 +1,49 @@
+{
+  "name": "polyglot-live-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PolyGlot Live AI — ultra-low-latency real-time voice translator (web + Android)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:capacitor": "cross-env BUILD_TARGET=capacitor next build",
+    "start": "next start",
+    "lint": "next lint",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cross-env BUILD_TARGET=capacitor next build && cap sync android",
+    "cap:open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/status-bar": "^6.0.1",
+    "@google/genai": "^0.14.0",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-select": "^2.1.2",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-switch": "^1.1.1",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.11.0",
+    "groq-sdk": "^0.7.0",
+    "lucide-react": "^0.446.0",
+    "next": "^14.2.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.2",
+    "tailwindcss-animate": "^1.0.7",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "@types/node": "^20.14.15",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
+    "postcss": "^8.4.45",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4"
+  }
+}
