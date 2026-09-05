@@ -1,7 +1,7 @@
 {
   "name": "PolyGlot Live AI",
   "short_name": "PolyGlot",
-  "description": "Ultra-low-latency real-time voice translator",
+  "description": "Ultra düşük gecikmeli, gerçek zamanlı sesli çevirmen",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0B0F",

@@ -60,7 +60,7 @@ export function useTranslation(): UseTranslationResult {
           speak(result.translatedText, targetLanguage);
         }
       } catch (err) {
-        setLastError(err instanceof Error ? err.message : 'Translation failed.');
+        setLastError(err instanceof Error ? err.message : 'Çeviri başarısız oldu.');
       } finally {
         inFlightRef.current -= 1;
         if (inFlightRef.current <= 0) setIsProcessing(false);

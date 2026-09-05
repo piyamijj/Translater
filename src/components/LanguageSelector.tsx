@@ -14,7 +14,7 @@ export function LanguageSelector() {
       <Languages className="h-4 w-4 shrink-0 text-muted-foreground" />
       <Select value={targetLanguage} onValueChange={setTargetLanguage}>
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Target language" />
+          <SelectValue placeholder="Hedef dil" />
         </SelectTrigger>
         <SelectContent>
           {LANGUAGES.map((lang) => (

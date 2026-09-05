@@ -22,7 +22,7 @@ export const groqAdapter: AIProviderAdapter = {
   label: 'Groq (Whisper + Llama 3)',
   async translateAudio(params: TranslateAudioParams): Promise<TranslateAudioResult> {
     const { audioBlob, mimeType, targetLanguage, apiKey, signal } = params;
-    if (!apiKey) throw new ProviderError('Missing Groq API key', 'groq');
+    if (!apiKey) throw new ProviderError('Groq API anahtarı eksik', 'groq');
 
     const client = new Groq({ apiKey, dangerouslyAllowBrowser: true });
     const lang = getLanguageByCode(targetLanguage);
@@ -65,7 +65,7 @@ export const groqAdapter: AIProviderAdapter = {
       return { sourceText, sourceLangGuess, translatedText };
     } catch (err) {
       if (err instanceof ProviderError) throw err;
-      throw new ProviderError('Groq request failed', 'groq', err);
+      throw new ProviderError('Groq isteği başarısız oldu', 'groq', err);
     }
   },
 };

@@ -63,7 +63,7 @@ function Panel({ label, text, languageCode, emptyHint, accent = 'default' }: Pan
             className="h-7 w-7"
             disabled={!text}
             onClick={handleReadAloud}
-            aria-label="Read aloud"
+            aria-label="Sesli oku"
           >
             {speaking ? <Square className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
           </Button>
@@ -73,7 +73,7 @@ function Panel({ label, text, languageCode, emptyHint, accent = 'default' }: Pan
             className="h-7 w-7"
             disabled={!text}
             onClick={handleCopy}
-            aria-label="Copy"
+            aria-label="Kopyala"
           >
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
           </Button>
@@ -105,16 +105,16 @@ export function TranslationDisplay({ entry }: TranslationDisplayProps) {
   return (
     <div className="grid gap-3">
       <Panel
-        label="Original"
+        label="Orijinal"
         text={entry?.sourceText ?? ''}
         languageCode={entry?.sourceLangGuess ?? 'en'}
-        emptyHint="Your speech will appear here…"
+        emptyHint="Konuşmanız burada görünecek…"
       />
       <Panel
-        label={`Translated${targetLang ? ` · ${targetLang.nativeLabel}` : ''}`}
+        label={`Çeviri${targetLang ? ` · ${targetLang.nativeLabel}` : ''}`}
         text={entry?.translatedText ?? ''}
         languageCode={entry?.targetLang ?? 'tr'}
-        emptyHint="Translation will appear here…"
+        emptyHint="Çeviri burada görünecek…"
         accent="primary"
       />
     </div>

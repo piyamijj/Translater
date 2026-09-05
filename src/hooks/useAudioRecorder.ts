@@ -183,7 +183,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions): UseAudioReco
       setIsRecording(true);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Microphone access was denied or is unavailable.'
+        err instanceof Error ? err.message : 'Mikrofon erişimi reddedildi veya kullanılamıyor.'
       );
       cleanupAudioGraph();
     }

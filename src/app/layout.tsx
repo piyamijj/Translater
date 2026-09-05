@@ -4,7 +4,7 @@ import { CapacitorBootstrap } from './capacitor-bootstrap';
 
 export const metadata: Metadata = {
   title: 'PolyGlot Live AI',
-  description: 'Ultra-low-latency real-time voice translation, powered by your own AI keys.',
+  description: 'Kendi AI anahtarlarınızla çalışan, ultra düşük gecikmeli gerçek zamanlı sesli çeviri.',
 };
 
 export const viewport: Viewport = {
@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="tr" className="dark">
       <body className="min-h-screen antialiased">
         <CapacitorBootstrap />
         {children}

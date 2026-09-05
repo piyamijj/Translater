@@ -46,8 +46,8 @@ export default function HomePage() {
   }, [captureMode, stop]);
 
   const micLabel = useMemo(() => {
-    if (captureMode === 'push-to-talk') return isRecording ? 'Release to translate' : 'Hold to talk';
-    return isRecording ? 'Listening… tap to stop' : 'Tap to start listening';
+    if (captureMode === 'push-to-talk') return isRecording ? 'Çevirmek için bırakın' : 'Konuşmak için basılı tutun';
+    return isRecording ? 'Dinleniyor… durdurmak için dokunun' : 'Dinlemeye başlamak için dokunun';
   }, [captureMode, isRecording]);
 
   return (
@@ -59,7 +59,7 @@ export default function HomePage() {
           </div>
           <div>
             <h1 className="text-base font-bold leading-none">PolyGlot Live AI</h1>
-            <p className="text-[11px] text-muted-foreground">Real-time voice translation</p>
+            <p className="text-[11px] text-muted-foreground">Gerçek zamanlı sesli çeviri</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -71,7 +71,7 @@ export default function HomePage() {
       {!hasAnyApiKey && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
           <KeyRound className="h-4 w-4 shrink-0" />
-          Add an API key in Settings (Gemini, Groq, or OpenAI) to start translating.
+          Çeviriye başlamak için Ayarlar&apos;dan bir API anahtarı ekleyin (Gemini, Groq veya OpenAI).
         </div>
       )}
 
@@ -93,7 +93,7 @@ export default function HomePage() {
       {transcript.length > 1 && (
         <details className="mt-4 rounded-xl border border-border bg-card/50 p-3 text-xs text-muted-foreground">
           <summary className="cursor-pointer select-none font-medium">
-            History ({transcript.length - 1} earlier)
+            Geçmiş ({transcript.length - 1} önceki kayıt)
           </summary>
           <ul className="mt-2 space-y-2">
             {transcript
@@ -119,7 +119,7 @@ export default function HomePage() {
               captureMode === 'push-to-talk' ? 'bg-secondary text-foreground' : 'hover:text-foreground'
             )}
           >
-            Push-to-talk
+            Bas-konuş
           </button>
           <button
             onClick={() => setCaptureMode('continuous')}
@@ -128,7 +128,7 @@ export default function HomePage() {
               captureMode === 'continuous' ? 'bg-secondary text-foreground' : 'hover:text-foreground'
             )}
           >
-            Continuous
+            Sürekli dinleme
           </button>
         </div>
 
@@ -169,7 +169,7 @@ export default function HomePage() {
             </Button>
           </motion.div>
         </div>
-        <p className="text-xs text-muted-foreground">{isProcessing ? 'Translating…' : micLabel}</p>
+        <p className="text-xs text-muted-foreground">{isProcessing ? 'Çevriliyor…' : micLabel}</p>
       </footer>
     </main>
   );

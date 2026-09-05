@@ -37,7 +37,7 @@ function ApiKeyField({ provider, label, helpUrl }: { provider: AIProviderId; lab
           rel="noreferrer"
           className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
         >
-          Get a key
+          Anahtar al
         </a>
       </div>
       <div className="relative">
@@ -46,7 +46,7 @@ function ApiKeyField({ provider, label, helpUrl }: { provider: AIProviderId; lab
           type={visible ? 'text' : 'password'}
           autoComplete="off"
           spellCheck={false}
-          placeholder={`Paste your ${label} API key`}
+          placeholder={`${label} API anahtarınızı yapıştırın`}
           value={value}
           onChange={(e) => setApiKey(provider, e.target.value)}
           className="pr-10"
@@ -75,15 +75,15 @@ export function SettingsModal() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Settings">
+        <Button variant="ghost" size="icon" aria-label="Ayarlar">
           <Settings className="h-5 w-5" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle>Ayarlar</DialogTitle>
           <DialogDescription>
-            Configure your own AI provider keys and capture preferences.
+            Kendi AI sağlayıcı anahtarlarınızı ve kayıt tercihlerinizi yapılandırın.
           </DialogDescription>
         </DialogHeader>
 
@@ -91,20 +91,20 @@ export function SettingsModal() {
           <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
             <p>
-              Your API keys are stored only in this browser&apos;s local storage. They are sent
-              directly to each provider&apos;s own API and are never logged or sent to any
-              other server.
+              API anahtarlarınız yalnızca bu tarayıcının yerel depolama alanında saklanır.
+              Doğrudan ilgili sağlayıcının kendi API&apos;sine gönderilir; hiçbir zaman
+              kaydedilmez veya başka bir sunucuya iletilmez.
             </p>
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold">AI Providers</h3>
+            <h3 className="text-sm font-semibold">AI Sağlayıcıları</h3>
             {PROVIDERS.map((p) => (
               <ApiKeyField key={p.id} provider={p.id} label={p.label} helpUrl={p.helpUrl} />
             ))}
 
             <div className="space-y-1.5">
-              <Label>Preferred provider</Label>
+              <Label>Tercih edilen sağlayıcı</Label>
               <div className="flex gap-2">
                 {PROVIDERS.map((p) => (
                   <Button
@@ -119,14 +119,14 @@ export function SettingsModal() {
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                If this provider fails, the app automatically falls back to any other provider
-                you&apos;ve configured a key for.
+                Bu sağlayıcı başarısız olursa, uygulama otomatik olarak anahtar tanımladığınız
+                başka bir sağlayıcıya geçer.
               </p>
             </div>
           </div>
 
           <div className="space-y-4 border-t border-border pt-4">
-            <h3 className="text-sm font-semibold">Capture mode</h3>
+            <h3 className="text-sm font-semibold">Kayıt modu</h3>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -134,7 +134,7 @@ export function SettingsModal() {
                 variant={captureMode === 'push-to-talk' ? 'default' : 'outline'}
                 onClick={() => setCaptureMode('push-to-talk')}
               >
-                Push-to-talk
+                Bas-konuş
               </Button>
               <Button
                 type="button"
@@ -142,16 +142,16 @@ export function SettingsModal() {
                 variant={captureMode === 'continuous' ? 'default' : 'outline'}
                 onClick={() => setCaptureMode('continuous')}
               >
-                Continuous (hands-free)
+                Sürekli (eller serbest)
               </Button>
             </div>
           </div>
 
           <div className="flex items-center justify-between border-t border-border pt-4">
             <div>
-              <Label htmlFor="tts-toggle">Speak translations aloud</Label>
+              <Label htmlFor="tts-toggle">Çevirileri sesli oku</Label>
               <p className="text-xs text-muted-foreground">
-                Automatically play translated text through text-to-speech.
+                Çevrilen metni otomatik olarak sesli okuma ile oynatır.
               </p>
             </div>
             <Switch id="tts-toggle" checked={ttsEnabled} onCheckedChange={setTtsEnabled} />

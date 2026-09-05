@@ -14,7 +14,7 @@ const registry: Record<AIProviderId, AIProviderAdapter> = {
     label: 'OpenAI (Whisper + GPT)',
     async translateAudio(params: TranslateAudioParams): Promise<TranslateAudioResult> {
       const { audioBlob, mimeType, targetLanguage, apiKey, signal } = params;
-      if (!apiKey) throw new ProviderError('Missing OpenAI API key', 'openai');
+      if (!apiKey) throw new ProviderError('OpenAI API anahtarı eksik', 'openai');
 
       const form = new FormData();
       const ext = mimeType.includes('wav') ? 'wav' : mimeType.includes('mp4') ? 'm4a' : 'webm';
@@ -27,7 +27,7 @@ const registry: Record<AIProviderId, AIProviderAdapter> = {
         body: form,
         signal,
       });
-      if (!sttRes.ok) throw new ProviderError(`OpenAI STT failed (${sttRes.status})`, 'openai');
+      if (!sttRes.ok) throw new ProviderError(`OpenAI STT isteği başarısız oldu (${sttRes.status})`, 'openai');
       const sttJson = await sttRes.json();
       const sourceText: string = sttJson.text?.trim() ?? '';
       if (!sourceText) return { sourceText: '', sourceLangGuess: null, translatedText: '' };
@@ -51,7 +51,7 @@ const registry: Record<AIProviderId, AIProviderAdapter> = {
         }),
         signal,
       });
-      if (!chatRes.ok) throw new ProviderError(`OpenAI chat failed (${chatRes.status})`, 'openai');
+      if (!chatRes.ok) throw new ProviderError(`OpenAI sohbet isteği başarısız oldu (${chatRes.status})`, 'openai');
       const chatJson = await chatRes.json();
       const translatedText: string = chatJson.choices?.[0]?.message?.content?.trim() ?? '';
 
@@ -93,7 +93,7 @@ export async function translateWithFallback(
 
   if (lastError instanceof ProviderError) throw lastError;
   throw new ProviderError(
-    'No AI provider succeeded. Add at least one valid API key in Settings.',
+    'Hiçbir AI sağlayıcısı başarılı olmadı. Ayarlar\'dan en az bir geçerli API anahtarı ekleyin.',
     'none',
     lastError
   );

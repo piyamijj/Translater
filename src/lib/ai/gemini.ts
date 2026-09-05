@@ -51,7 +51,7 @@ export const geminiAdapter: AIProviderAdapter = {
   label: 'Google Gemini',
   async translateAudio(params: TranslateAudioParams): Promise<TranslateAudioResult> {
     const { audioBlob, mimeType, targetLanguage, apiKey, signal } = params;
-    if (!apiKey) throw new ProviderError('Missing Gemini API key', 'gemini');
+    if (!apiKey) throw new ProviderError('Gemini API anahtarı eksik', 'gemini');
 
     try {
       const ai = new GoogleGenAI({ apiKey });
@@ -84,7 +84,7 @@ export const geminiAdapter: AIProviderAdapter = {
       };
     } catch (err) {
       if (err instanceof ProviderError) throw err;
-      throw new ProviderError('Gemini request failed', 'gemini', err);
+      throw new ProviderError('Gemini isteği başarısız oldu', 'gemini', err);
     }
   },
 };
