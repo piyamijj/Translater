@@ -250,7 +250,9 @@ async function translateWithGeminiModel(
   };
 }
 
-const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-2.5-flash'];
+// gemini-flash-latest now aliases a newer model with a tiny free-tier quota
+// (20 req/day) that was already exhausted — keep the stable 2.5 model first.
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest'];
 
 async function translateWithGeminiOnce(
   audioBuffer: ArrayBuffer,

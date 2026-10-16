@@ -63,7 +63,7 @@ export const geminiAdapter: AIProviderAdapter = {
       const base64Audio = await blobToBase64(audioBlob);
 
       const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
+        model: 'gemini-2.5-flash',
         contents: [
           {
             role: 'user',
@@ -75,7 +75,7 @@ export const geminiAdapter: AIProviderAdapter = {
         ],
         config: {
           temperature: 0,
-          // gemini-flash-latest has "thinking" on by default, which eats into
+          // gemini-2.5-flash has "thinking" on by default, which eats into
           // the output token budget and was truncating short translations —
           // this is a fast, deterministic task with no need for it.
           thinkingConfig: { thinkingBudget: 0 },
