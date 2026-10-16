@@ -1,11 +1,11 @@
 import Groq from 'groq-sdk';
 import type { AIProviderAdapter, TranslateAudioParams, TranslateAudioResult } from './types';
 import { ProviderError } from './types';
-import { getLanguageByCode } from '../languages';
+import { getLanguageByCode, getSourceLanguageFor } from '../languages';
 
 /**
  * Groq adapter — two-stage pipeline:
- *   1) whisper-large-v3 transcribes the raw audio (auto-detects source language).
+ *   1) whisper-large-v3 transcribes the raw audio (language fixed by target: fa or tr).
  *   2) openai/gpt-oss-120b translates the transcript into the target language.
  * Both calls run client-side against Groq's OpenAI-compatible REST API using the
  * user's own key (dangerouslyAllowBrowser — this is a BYOK app, key never leaves
@@ -26,12 +26,14 @@ export const groqAdapter: AIProviderAdapter = {
 
     const client = new Groq({ apiKey, dangerouslyAllowBrowser: true });
     const lang = getLanguageByCode(targetLanguage);
+    const src = getSourceLanguageFor(targetLanguage);
 
     try {
       const transcription = await client.audio.transcriptions.create(
         {
           file: fileFromBlob(audioBlob, mimeType),
           model: 'whisper-large-v3',
+          language: src.code,
           response_format: 'verbose_json',
           temperature: 0,
         },
@@ -39,7 +41,7 @@ export const groqAdapter: AIProviderAdapter = {
       );
 
       const sourceText = (transcription as { text?: string }).text?.trim() ?? '';
-      const sourceLangGuess = (transcription as { language?: string }).language ?? null;
+      const sourceLangGuess: string | null = src.code;
 
       if (!sourceText) {
         return { sourceText: '', sourceLangGuess, translatedText: '' };
@@ -54,9 +56,9 @@ export const groqAdapter: AIProviderAdapter = {
             {
               role: 'system',
               content: [
-                `You are a professional simultaneous interpreter. Translate the user's message into ${lang.label} (${lang.nativeLabel}).`,
+                `You are a professional simultaneous interpreter. Translate the user's message from ${src.label} into ${lang.label} (${lang.nativeLabel}), in its proper script.`,
                 'Rules: (1) Always produce a complete translation, even for short or fragmentary text — never skip it. ',
-                '(2) Never reply with the input unchanged unless it is already written in the target language. ',
+                '(2) Never reply with the input unchanged; the output must be in the target language. ',
                 '(3) Translate the full message end to end — never truncate or summarize partway. ',
                 'Reply with ONLY the translated text, no quotes, no explanation, no source-language repetition.',
               ].join(''),

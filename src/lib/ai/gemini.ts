@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import type { AIProviderAdapter, TranslateAudioParams, TranslateAudioResult } from './types';
 import { ProviderError } from './types';
-import { getLanguageByCode } from '../languages';
+import { getLanguageByCode, getSourceLanguageFor } from '../languages';
 
 /**
  * Gemini adapter — uses Gemini 1.5/2.0 Flash's native audio understanding to do
@@ -23,19 +23,20 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 function buildPrompt(targetLanguage: string): string {
   const lang = getLanguageByCode(targetLanguage);
+  const src = getSourceLanguageFor(targetLanguage);
   return [
-    `You are a real-time speech translation engine. Detect the spoken language yourself — never assume it matches the target language.`,
+    `You are a real-time Persian<->Turkish interpreter. The speaker is speaking ${src.label}. Do NOT auto-detect any other language: transcribe the audio as ${src.label} and translate it into ${lang.label}.`,
     `Listen to the attached audio clip and respond with ONLY a JSON object matching the given schema.`,
     ``,
-    `- "source_text": verbatim transcription of the speech in its ORIGINAL language, exactly as spoken.`,
-    `- "source_lang": your best guess at the spoken language, as an ISO 639-1 code or short name.`,
+    `- "source_text": verbatim transcription of the speech in ${src.label} (${src.nativeLabel}), exactly as spoken.`,
+    `- "source_lang": the code "${src.code}".`,
     `- "translated_text": a COMPLETE, natural, fluent translation of the ENTIRE utterance into ${lang.label} (${lang.nativeLabel}).`,
     ``,
     `Hard rules — follow every one of these:`,
     `1. ALWAYS produce a translation, even for very short clips, single words, or ambiguous fragments. Do your best rather than skipping it.`,
-    `2. NEVER copy "source_text" into "translated_text" unchanged. The only exception is when the speech is ALREADY in the target language — in that case translated_text may equal source_text verbatim.`,
+    `2. NEVER copy "source_text" into "translated_text". The output must be in ${lang.label} (${lang.nativeLabel}), written in its proper script.`,
     `3. Translate the FULL sentence, start to finish. Never stop partway, never drop the ending, never summarize — a short input still gets a complete, un-truncated translation.`,
-    `4. If you are unsure of the exact source language, still make your best-effort translation into the target language rather than leaving it untranslated.`,
+    `4. Output only the JSON object; no commentary.`,
     `If the audio is truly silent with no speech at all, return empty strings for all three fields.`,
   ].join('\n');
 }

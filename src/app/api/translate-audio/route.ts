@@ -16,6 +16,20 @@ function jsonWithCors(body: unknown, init?: { status?: number }) {
   return NextResponse.json(body, { ...init, headers: CORS_HEADERS });
 }
 
+
+// --- Persian <-> Turkish only: source language is implied by the target ---
+function normTarget(code: string): 'tr' | 'fa' {
+  return code === 'fa' ? 'fa' : 'tr';
+}
+function sourceLanguageCode(target: string): 'tr' | 'fa' {
+  return normTarget(target) === 'fa' ? 'tr' : 'fa';
+}
+function languageName(code: string): string {
+  return normTarget(code) === 'fa' ? 'Persian' : 'Turkish';
+}
+function sourceLanguageName(target: string): string {
+  return languageName(sourceLanguageCode(target));
+}
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
@@ -149,19 +163,21 @@ async function translateWithGeminiOnce(
 ): Promise<AudioTranslateResult> {
   const base64Audio = arrayBufferToBase64(audioBuffer);
 
+  const src = sourceLanguageName(targetLanguage);
+  const tgt = languageName(targetLanguage);
   const prompt = [
-    'You are a real-time speech translation engine. Detect the spoken language yourself — never assume it matches the target language.',
+    `You are a real-time Persian<->Turkish interpreter. The speaker is speaking ${src}. Do NOT auto-detect any other language: transcribe the audio as ${src} and translate it into ${tgt}.`,
     'Listen to the attached audio clip and respond with ONLY a JSON object matching the given schema.',
     '',
-    '- "source_text": verbatim transcription of the speech in its ORIGINAL language, exactly as spoken.',
-    '- "source_lang": your best guess at the spoken language, as an ISO 639-1 code or short name.',
-    `- "translated_text": a COMPLETE, natural, fluent translation of the ENTIRE utterance into the language with code "${targetLanguage}".`,
+    `- "source_text": verbatim transcription of the speech in ${src} (${src === 'Persian' ? 'Persian/Farsi script' : 'Turkish'}), exactly as spoken.`,
+    `- "source_lang": the code "${sourceLanguageCode(targetLanguage)}".`,
+    `- "translated_text": a COMPLETE, natural, fluent translation of the ENTIRE utterance into ${tgt} (code "${targetLanguage}"), written in the proper script for ${tgt}.`,
     '',
     'Hard rules — follow every one of these:',
     '1. ALWAYS produce a translation, even for very short clips, single words, or ambiguous fragments. Do your best rather than skipping it.',
-    '2. NEVER copy "source_text" into "translated_text" unchanged. The only exception is when the speech is ALREADY in the target language — in that case translated_text may equal source_text verbatim.',
-    '3. Translate the FULL sentence, start to finish. Never stop partway, never drop the ending, never summarize — a short input still gets a complete, un-truncated translation.',
-    '4. If you are unsure of the exact source language, still make your best-effort translation into the target language rather than leaving it untranslated.',
+    `2. NEVER copy "source_text" into "translated_text". The output must be in ${tgt}.`,
+    '3. Translate the FULL sentence, start to finish. Never stop partway, never drop the ending, never summarize.',
+    '4. Output only the JSON object; no commentary.',
     'If the audio is truly silent with no speech at all, return empty strings for all three fields.',
   ].join('\n');
 
@@ -230,6 +246,7 @@ async function translateWithGroqOnce(
   const form = new FormData();
   form.append('file', new File([audioBlob], `chunk.${ext}`, { type: mimeType || 'audio/webm' }));
   form.append('model', 'whisper-large-v3');
+  form.append('language', sourceLanguageCode(targetLanguage));
   form.append('response_format', 'verbose_json');
   form.append('temperature', '0');
 
@@ -245,7 +262,7 @@ async function translateWithGroqOnce(
   }
   const sttJson = await sttRes.json();
   const sourceText: string = sttJson.text?.trim() ?? '';
-  const sourceLangGuess: string | null = sttJson.language ?? null;
+  const sourceLangGuess: string | null = sourceLanguageCode(targetLanguage);
 
   if (!sourceText) {
     return { sourceText: '', sourceLangGuess, translatedText: '', providerUsed: 'groq' };
@@ -262,7 +279,7 @@ async function translateWithGroqOnce(
         {
           role: 'system',
           content: [
-            `You are a professional simultaneous interpreter. Translate the user's message into the language with code "${targetLanguage}".`,
+            `You are a professional simultaneous interpreter. Translate the user's message from ${sourceLanguageName(targetLanguage)} into ${languageName(targetLanguage)} (use the proper script for ${languageName(targetLanguage)}).`,
             'Rules: (1) Always produce a complete translation, even for short or fragmentary text — never skip it. ',
             '(2) Never reply with the input unchanged unless it is already written in the target language. ',
             '(3) Translate the full message end to end — never truncate or summarize partway. ',
@@ -345,7 +362,7 @@ export async function POST(req: NextRequest) {
 
     const audio = form.get('audio');
     const mimeType = String(form.get('mimeType') ?? 'audio/webm');
-    const targetLanguage = String(form.get('targetLanguage') ?? 'tr');
+    const targetLanguage = normTarget(String(form.get('targetLanguage') ?? 'tr'));
     const preferredProvider = String(form.get('provider') ?? 'gemini') as 'gemini' | 'groq';
     const overrideApiKeyRaw = form.get('apiKey');
     const overrideApiKey = overrideApiKeyRaw ? String(overrideApiKeyRaw) : undefined;

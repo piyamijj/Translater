@@ -24,8 +24,9 @@ olarak yayınlanır.
   düğmesi bulunur.
 - **Modern, mobil öncelikli, koyu temalı arayüz** ve canlı ses dalga formu
   görselleştiricisi.
-- **15 hedef dil**, varsayılan olarak Türkçe, istediğiniz zaman
-  değiştirilebilir.
+- **Yalnızca Farsça ↔ Türkçe**: dil algılama yoktur; hedef dili siz seçersiniz.
+  Hedef Farsça ise konuşma Türkçe, hedef Türkçe ise konuşma Farsça kabul edilir.
+  Farsça metinler sağdan sola (RTL) gösterilir; sesli okuma fa-IR / tr-TR kullanır.
 
 ## Teknoloji yığını
 

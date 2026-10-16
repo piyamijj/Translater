@@ -1,38 +1,38 @@
 export interface LanguageOption {
-  code: string; // BCP-47
+  code: 'tr' | 'fa';
   label: string;
   nativeLabel: string;
   flag: string;
-  // Web Speech API SpeechSynthesisVoice lang match hint
+  /** BCP-47 tag used for speech synthesis / recognition hints */
   speechLang: string;
+  /** Text direction of the script */
+  dir: 'ltr' | 'rtl';
 }
 
 /**
- * Target languages the user can translate INTO. Turkish (tr-TR) is the
- * default per spec; the rest cover the explicitly requested set plus a few
- * common extras. Source language is auto-detected by the AI provider, so
- * there is no source-language list — only "Auto-detect" is shown for source.
+ * PolyGlot Live AI is a dedicated Persian <-> Turkish interpreter.
+ * There is NO language auto-detection: the user picks the TARGET language and
+ * the source is implied by it — target Persian => speaker speaks Turkish,
+ * target Turkish => speaker speaks Persian.
  */
 export const LANGUAGES: LanguageOption[] = [
-  { code: 'tr', label: 'Turkish', nativeLabel: 'Türkçe', flag: '🇹🇷', speechLang: 'tr-TR' },
-  { code: 'en', label: 'English', nativeLabel: 'English', flag: '🇬🇧', speechLang: 'en-US' },
-  { code: 'de', label: 'German', nativeLabel: 'Deutsch', flag: '🇩🇪', speechLang: 'de-DE' },
-  { code: 'es', label: 'Spanish', nativeLabel: 'Español', flag: '🇪🇸', speechLang: 'es-ES' },
-  { code: 'ar', label: 'Arabic', nativeLabel: 'العربية', flag: '🇸🇦', speechLang: 'ar-SA' },
-  { code: 'ru', label: 'Russian', nativeLabel: 'Русский', flag: '🇷🇺', speechLang: 'ru-RU' },
-  { code: 'fr', label: 'French', nativeLabel: 'Français', flag: '🇫🇷', speechLang: 'fr-FR' },
-  { code: 'it', label: 'Italian', nativeLabel: 'Italiano', flag: '🇮🇹', speechLang: 'it-IT' },
-  { code: 'pt', label: 'Portuguese', nativeLabel: 'Português', flag: '🇵🇹', speechLang: 'pt-PT' },
-  { code: 'ja', label: 'Japanese', nativeLabel: '日本語', flag: '🇯🇵', speechLang: 'ja-JP' },
-  { code: 'ko', label: 'Korean', nativeLabel: '한국어', flag: '🇰🇷', speechLang: 'ko-KR' },
-  { code: 'zh', label: 'Chinese', nativeLabel: '中文', flag: '🇨🇳', speechLang: 'zh-CN' },
-  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी', flag: '🇮🇳', speechLang: 'hi-IN' },
-  { code: 'nl', label: 'Dutch', nativeLabel: 'Nederlands', flag: '🇳🇱', speechLang: 'nl-NL' },
-  { code: 'pl', label: 'Polish', nativeLabel: 'Polski', flag: '🇵🇱', speechLang: 'pl-PL' },
+  { code: 'tr', label: 'Turkish', nativeLabel: 'Türkçe', flag: '🇹🇷', speechLang: 'tr-TR', dir: 'ltr' },
+  { code: 'fa', label: 'Persian', nativeLabel: 'فارسی', flag: '🇮🇷', speechLang: 'fa-IR', dir: 'rtl' },
 ];
 
-export const DEFAULT_TARGET_LANGUAGE = 'tr';
+export const DEFAULT_TARGET_LANGUAGE: LanguageOption['code'] = 'tr';
 
-export function getLanguageByCode(code: string): LanguageOption {
-  return LANGUAGES.find((l) => l.code === code) ?? LANGUAGES[0];
+/** Coerces any stored/received value (e.g. an old 'en' from localStorage) to tr|fa. */
+export function normalizeLanguageCode(code: string | null | undefined): LanguageOption['code'] {
+  return code === 'fa' ? 'fa' : 'tr';
+}
+
+export function getLanguageByCode(code: string | null | undefined): LanguageOption {
+  const c = normalizeLanguageCode(code);
+  return LANGUAGES.find((l) => l.code === c) ?? LANGUAGES[0];
+}
+
+/** The language the speaker is assumed to speak, given the chosen target. */
+export function getSourceLanguageFor(targetCode: string | null | undefined): LanguageOption {
+  return normalizeLanguageCode(targetCode) === 'fa' ? getLanguageByCode('tr') : getLanguageByCode('fa');
 }

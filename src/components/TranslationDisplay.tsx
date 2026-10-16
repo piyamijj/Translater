@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Copy, Check, Volume2, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { speak, stopSpeaking } from '@/lib/tts';
-import { getLanguageByCode } from '@/lib/languages';
+import { getLanguageByCode, getSourceLanguageFor } from '@/lib/languages';
 import type { TranscriptEntry } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
@@ -80,6 +80,8 @@ function Panel({ label, text, languageCode, emptyHint, accent = 'default' }: Pan
         </div>
       </div>
       <p
+        dir={text ? getLanguageByCode(languageCode).dir : 'ltr'}
+        lang={text ? languageCode : 'tr'}
         className={cn(
           'flex-1 whitespace-pre-wrap break-words text-lg font-semibold leading-snug',
           !text && 'text-muted-foreground/60 font-normal'
@@ -101,13 +103,14 @@ interface TranslationDisplayProps {
  */
 export function TranslationDisplay({ entry }: TranslationDisplayProps) {
   const targetLang = entry ? getLanguageByCode(entry.targetLang) : null;
+  const sourceLang = entry ? getSourceLanguageFor(entry.targetLang) : null;
 
   return (
     <div className="grid gap-3">
       <Panel
-        label="Orijinal"
+        label={`Orijinal${sourceLang ? ` · ${sourceLang.nativeLabel}` : ''}`}
         text={entry?.sourceText ?? ''}
-        languageCode={entry?.sourceLangGuess ?? 'en'}
+        languageCode={entry ? getSourceLanguageFor(entry.targetLang).code : 'fa'}
         emptyHint="Konuşmanız burada görünecek…"
       />
       <Panel

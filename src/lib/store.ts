@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { DEFAULT_TARGET_LANGUAGE } from './languages';
+import { DEFAULT_TARGET_LANGUAGE, normalizeLanguageCode } from './languages';
 
 export type AIProviderId = 'gemini' | 'groq' | 'openai';
 export type CaptureMode = 'continuous' | 'push-to-talk';
@@ -71,7 +71,7 @@ export const usePolyGlotStore = create<PolyGlotState>()(
       setApiKey: (provider, key) =>
         set((s) => ({ apiKeys: { ...s.apiKeys, [provider]: key } })),
       setActiveProvider: (provider) => set({ activeProvider: provider }),
-      setTargetLanguage: (lang) => set({ targetLanguage: lang }),
+      setTargetLanguage: (lang) => set({ targetLanguage: normalizeLanguageCode(lang) }),
       setCaptureMode: (mode) => set({ captureMode: mode }),
       setTtsEnabled: (enabled) => set({ ttsEnabled: enabled }),
       setVadSensitivity: (value) => set({ vadSensitivity: value }),
@@ -95,6 +95,11 @@ export const usePolyGlotStore = create<PolyGlotState>()(
     }),
     {
       name: 'polyglot-live-ai:settings',
+      version: 2,
+      migrate: (persisted) => {
+        const p = (persisted ?? {}) as Record<string, unknown>;
+        return { ...p, targetLanguage: normalizeLanguageCode(p.targetLanguage as string) } as never;
+      },
       storage: createJSONStorage(() => localStorage),
       // Never persist live session/processing flags — only durable settings + history.
       partialize: (s) => ({
