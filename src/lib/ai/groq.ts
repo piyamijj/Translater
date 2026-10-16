@@ -2,6 +2,7 @@ import Groq from 'groq-sdk';
 import type { AIProviderAdapter, TranslateAudioParams, TranslateAudioResult } from './types';
 import { ProviderError } from './types';
 import { getLanguageByCode, getSourceLanguageFor } from '../languages';
+import { isGhostText, isNoisySegment } from './hallucination';
 
 /**
  * Groq adapter — two-stage pipeline:
@@ -40,10 +41,18 @@ export const groqAdapter: AIProviderAdapter = {
         { signal }
       );
 
-      const sourceText = (transcription as { text?: string }).text?.trim() ?? '';
+      const tr = transcription as {
+        text?: string;
+        segments?: Array<{ text?: string; no_speech_prob?: number; avg_logprob?: number; compression_ratio?: number }>;
+      };
+      const sourceText = (
+        Array.isArray(tr.segments) && tr.segments.length
+          ? tr.segments.filter((s) => !isNoisySegment(s)).map((s) => (s.text ?? '').trim()).filter(Boolean).join(' ')
+          : tr.text ?? ''
+      ).trim();
       const sourceLangGuess: string | null = src.code;
 
-      if (!sourceText) {
+      if (isGhostText(sourceText)) {
         return { sourceText: '', sourceLangGuess, translatedText: '' };
       }
 

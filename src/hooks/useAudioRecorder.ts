@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isTtsActive, stopSpeaking } from '@/lib/tts';
 
 export type RecorderMode = 'continuous' | 'push-to-talk';
 
@@ -63,6 +64,12 @@ export function useAudioRecorder(options: UseAudioRecorderOptions): UseAudioReco
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasSpokenRef = useRef(false);
   const mimeTypeRef = useRef('');
+  // Echo guard + start/stop race guards
+  const taintedRef = useRef(false); // current segment overlapped our own TTS
+  const discardRef = useRef(false); // drop the segment being flushed
+  const startingRef = useRef(false);
+  const wantActiveRef = useRef(false);
+  const activeRef = useRef(false);
 
   const cleanupAudioGraph = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -102,6 +109,24 @@ export function useAudioRecorder(options: UseAudioRecorderOptions): UseAudioReco
         const speechThreshold = 0.02 + (1 - vadSensitivity) * 0.06;
 
         if (mode === 'continuous') {
+          // Echo guard: never treat our own TTS playback as user speech.
+          if (isTtsActive()) {
+            taintedRef.current = true;
+            hasSpokenRef.current = false;
+            if (silenceTimerRef.current) {
+              clearTimeout(silenceTimerRef.current);
+              silenceTimerRef.current = null;
+            }
+            rafRef.current = requestAnimationFrame(tick);
+            return;
+          }
+          if (taintedRef.current) {
+            // TTS just ended: throw away the contaminated segment and start clean.
+            discardRef.current = true;
+            flushRecorder();
+            rafRef.current = requestAnimationFrame(tick);
+            return;
+          }
           if (rms > speechThreshold) {
             hasSpokenRef.current = true;
             if (silenceTimerRef.current) {
@@ -138,7 +163,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions): UseAudioReco
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' });
         chunksRef.current = [];
-        if (blob.size > 0) onChunkReady(blob, mimeType);
+        const drop = discardRef.current;
+        discardRef.current = false;
+        taintedRef.current = false;
+        if (blob.size > 0 && !drop) onChunkReady(blob, mimeType);
 
         // Continuous mode: immediately arm a new segment so the next utterance
         // is captured without the user needing to press anything.
@@ -160,11 +188,21 @@ export function useAudioRecorder(options: UseAudioRecorderOptions): UseAudioReco
   }, [beginNewRecorderSegment]);
 
   const start = useCallback(async () => {
+    if (startingRef.current || activeRef.current) return;
+    startingRef.current = true;
+    wantActiveRef.current = true;
+    stopSpeaking(); // never record over our own voice
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
       });
+      if (!wantActiveRef.current) {
+        // Released before the mic finished opening: do NOT leave it recording.
+        stream.getTracks().forEach((t) => t.stop());
+        startingRef.current = false;
+        return;
+      }
       streamRef.current = stream;
       mimeTypeRef.current = pickSupportedMimeType();
 
@@ -181,6 +219,8 @@ export function useAudioRecorder(options: UseAudioRecorderOptions): UseAudioReco
       beginNewRecorderSegment(stream);
       startLevelLoop(analyser);
       setIsRecording(true);
+      activeRef.current = true;
+      startingRef.current = false;
     } catch (err) {
       // Translate the raw DOMException into a message that actually tells
       // the user (and us, in bug reports) what happened — the browser/WebView's
@@ -208,11 +248,15 @@ export function useAudioRecorder(options: UseAudioRecorderOptions): UseAudioReco
             err instanceof Error ? err.message : 'Mikrofon erişimi reddedildi veya kullanılamıyor.';
       }
       setError(message);
+      startingRef.current = false;
+      activeRef.current = false;
       cleanupAudioGraph();
     }
   }, [beginNewRecorderSegment, cleanupAudioGraph, mode, startLevelLoop]);
 
   const stop = useCallback(() => {
+    wantActiveRef.current = false;
+    activeRef.current = false;
     setIsRecording(false);
     flushRecorder();
     cleanupAudioGraph();

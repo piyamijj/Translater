@@ -11,6 +11,16 @@ import { getLanguageByCode } from './languages';
 
 let currentUtterance: SpeechSynthesisUtterance | null = null;
 
+// Echo guard: the microphone must never listen to the app's own TTS output.
+// `ttsActiveUntil` covers the utterance plus a short tail for room reverb.
+let ttsActiveUntil = 0;
+const TTS_TAIL_MS = 900;
+
+export function isTtsActive(): boolean {
+  if (typeof window === 'undefined') return false;
+  return Boolean(window.speechSynthesis?.speaking) || Date.now() < ttsActiveUntil;
+}
+
 export function speak(text: string, languageCode: string): void {
   if (typeof window === 'undefined' || !window.speechSynthesis || !text.trim()) return;
 
@@ -27,6 +37,12 @@ export function speak(text: string, languageCode: string): void {
     voices.find((v) => v.lang.startsWith(lang.code));
   if (match) utterance.voice = match;
 
+  // Mark busy immediately (onstart can lag), refresh on start/end.
+  ttsActiveUntil = Date.now() + Math.min(30_000, 1500 + text.length * 110);
+  utterance.onstart = () => { ttsActiveUntil = Date.now() + Math.min(30_000, 1500 + text.length * 110); };
+  utterance.onend = () => { ttsActiveUntil = Date.now() + TTS_TAIL_MS; };
+  utterance.onerror = () => { ttsActiveUntil = Date.now() + TTS_TAIL_MS; };
+
   currentUtterance = utterance;
   window.speechSynthesis.speak(utterance);
 }
@@ -35,6 +51,7 @@ export function stopSpeaking(): void {
   if (typeof window !== 'undefined' && window.speechSynthesis) {
     window.speechSynthesis.cancel();
   }
+  ttsActiveUntil = Date.now() + 300;
   currentUtterance = null;
 }
 

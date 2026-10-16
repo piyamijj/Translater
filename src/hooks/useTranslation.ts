@@ -1,5 +1,7 @@
 'use client';
 
+import { prepareAudio } from '@/lib/audio';
+import { isGhostText } from '@/lib/ai/hallucination';
 import { useCallback, useRef, useState } from 'react';
 import { usePolyGlotStore } from '@/lib/store';
 import { translateWithFallback, translateViaServerDefault } from '@/lib/ai/provider-factory';
@@ -30,8 +32,18 @@ export function useTranslation(): UseTranslationResult {
   } = usePolyGlotStore();
 
   const processChunk = useCallback(
-    async (blob: Blob, mimeType: string) => {
+    async (rawBlob: Blob, rawMime: string) => {
+      let blob = rawBlob;
+      let mimeType = rawMime;
       if (blob.size < 800) return; // ignore near-empty noise blips
+
+      // Gate on REAL speech: decode the samples, measure them, and drop the
+      // chunk locally if there was only silence / room noise. Nothing is sent
+      // to the AI (so nothing can be hallucinated) unless someone really spoke.
+      const prepared = await prepareAudio(blob, mimeType);
+      if (!prepared.hasSpeech) return;
+      blob = prepared.blob;
+      mimeType = prepared.mimeType;
 
       inFlightRef.current += 1;
       setIsProcessing(true);
@@ -54,6 +66,18 @@ export function useTranslation(): UseTranslationResult {
             });
 
         if (!result.sourceText && !result.translatedText) return; // silence, skip
+        if (isGhostText(result.sourceText)) return; // stock/looping STT ghost
+
+        // Same utterance twice in a row (double trigger / echo) -> ignore.
+        const prev = usePolyGlotStore.getState().transcript.slice(-1)[0];
+        if (
+          prev &&
+          Date.now() - prev.createdAt < 20_000 &&
+          prev.sourceText.trim() === result.sourceText.trim()
+        ) {
+          return;
+        }
+
 
         addTranscriptEntry({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

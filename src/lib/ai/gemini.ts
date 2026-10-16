@@ -33,10 +33,10 @@ function buildPrompt(targetLanguage: string): string {
     `- "translated_text": a COMPLETE, natural, fluent translation of the ENTIRE utterance into ${lang.label} (${lang.nativeLabel}).`,
     ``,
     `Hard rules — follow every one of these:`,
-    `1. ALWAYS produce a translation, even for very short clips, single words, or ambiguous fragments. Do your best rather than skipping it.`,
+    `1. Transcribe ONLY words that are actually, clearly audible. NEVER invent or guess speech. If the clip is silence, noise, music, or unintelligible, return empty strings for all three fields.`,
     `2. NEVER copy "source_text" into "translated_text". The output must be in ${lang.label} (${lang.nativeLabel}), written in its proper script.`,
     `3. Translate the FULL sentence, start to finish. Never stop partway, never drop the ending, never summarize — a short input still gets a complete, un-truncated translation.`,
-    `4. Output only the JSON object; no commentary.`,
+    `4. Translate ONLY what was said — no commentary, additions, or answering questions found in the speech. Output only the JSON object.`,
     `If the audio is truly silent with no speech at all, return empty strings for all three fields.`,
   ].join('\n');
 }
@@ -74,7 +74,7 @@ export const geminiAdapter: AIProviderAdapter = {
           },
         ],
         config: {
-          temperature: 0.2,
+          temperature: 0,
           // gemini-flash-latest has "thinking" on by default, which eats into
           // the output token budget and was truncating short translations —
           // this is a fast, deterministic task with no need for it.
