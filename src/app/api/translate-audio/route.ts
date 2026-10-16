@@ -274,7 +274,7 @@ async function translateWithGeminiOnce(
 /** Detect the real container from magic bytes instead of trusting the client label. */
 function sniffMime(buf: ArrayBuffer, claimed: string): string {
   const b = new Uint8Array(buf.slice(0, 12));
-  const ascii = (s: number, e: number) => String.fromCharCode(...b.slice(s, e));
+  const ascii = (s: number, e: number) => Array.from(b.slice(s, e)).map((c) => String.fromCharCode(c)).join('');
   if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WAVE') return 'audio/wav';
   if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return 'audio/webm';
   if (ascii(0, 4) === 'OggS') return 'audio/ogg';
