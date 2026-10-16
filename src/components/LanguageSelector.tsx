@@ -1,28 +1,30 @@
 'use client';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LANGUAGES } from '@/lib/languages';
 import { usePolyGlotStore } from '@/lib/store';
-import { Languages } from 'lucide-react';
+import { getSourceLanguageFor } from '@/lib/languages';
+import { Mic } from 'lucide-react';
 
+/**
+ * Explicit "who is speaking" choice. The speech-recognition language is fixed
+ * to the language you pick here (no auto-detect); the translation goes into
+ * the other language.
+ */
 export function LanguageSelector() {
   const targetLanguage = usePolyGlotStore((s) => s.targetLanguage);
   const setTargetLanguage = usePolyGlotStore((s) => s.setTargetLanguage);
+  const source = getSourceLanguageFor(targetLanguage).code; // 'fa' | 'tr'
 
   return (
     <div className="flex items-center gap-2">
-      <Languages className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Hedef dil" />
+      <Mic className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <Select value={source} onValueChange={(v) => setTargetLanguage(v === 'fa' ? 'tr' : 'fa')}>
+        <SelectTrigger className="w-[210px]" aria-label="Konuşma dili">
+          <SelectValue placeholder="Konuşma dili" />
         </SelectTrigger>
         <SelectContent>
-          {LANGUAGES.map((lang) => (
-            <SelectItem key={lang.code} value={lang.code}>
-              <span className="mr-2">{lang.flag}</span>
-              {lang.nativeLabel}
-            </SelectItem>
-          ))}
+          <SelectItem value="fa">🇮🇷 Farsça konuşuyorum → Türkçe</SelectItem>
+          <SelectItem value="tr">🇹🇷 Türkçe konuşuyorum → Farsça</SelectItem>
         </SelectContent>
       </Select>
     </div>

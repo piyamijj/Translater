@@ -250,9 +250,12 @@ async function translateWithGeminiModel(
   };
 }
 
-// gemini-flash-latest now aliases a newer model with a tiny free-tier quota
-// (20 req/day) that was already exhausted — keep the stable 2.5 model first.
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest'];
+// Models tried per key, in order. Availability differs per key (some keys get
+// 404 "no longer available to new users", the *-latest alias can be 429/503),
+// so remember (key, model) pairs that failed hard and skip them for a while.
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-flash-latest'];
+const badPairs = new Map<string, number>();
+const BAD_PAIR_MS = 30 * 60 * 1000;
 
 async function translateWithGeminiOnce(
   audioBuffer: ArrayBuffer,
@@ -260,14 +263,18 @@ async function translateWithGeminiOnce(
   targetLanguage: string,
   apiKey: string
 ): Promise<AudioTranslateResult> {
-  let lastErr: unknown;
+  let lastErr: unknown = new UpstreamError('Gemini modeli kullanılamıyor', 503);
   for (const model of GEMINI_MODELS) {
+    const id = `${apiKey.slice(-8)}:${model}`;
+    const until = badPairs.get(id);
+    if (until && until > Date.now()) continue;
     try {
       return await translateWithGeminiModel(audioBuffer, mimeType, targetLanguage, apiKey, model);
     } catch (err) {
       lastErr = err;
-      // Overloaded (503), rate-limited (429), unknown model (404) or bad
-      // output: try the next model on the same key before giving up on it.
+      if (err instanceof UpstreamError && [403, 404, 429].includes(err.status)) {
+        badPairs.set(id, Date.now() + BAD_PAIR_MS);
+      }
     }
   }
   throw lastErr;

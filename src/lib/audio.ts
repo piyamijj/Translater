@@ -18,7 +18,7 @@ export interface PreparedAudio {
 const TARGET_RATE = 16000;
 const FRAME = 320; // 20 ms @ 16 kHz
 const MIN_VOICED_FRAMES = 12; // >= 240 ms of voiced audio
-const MIN_PEAK_RMS = 0.02;
+const MIN_PEAK_RMS = 0.01; // phones with AGC off record quietly
 const MAX_WAV_BYTES = 4_000_000; // stay under serverless body limit
 
 function encodeWav(samples: Float32Array, rate: number): Blob {
@@ -82,7 +82,7 @@ export async function prepareAudio(blob: Blob, mimeType: string): Promise<Prepar
     }
     const sorted = Array.from(rms).sort((a, b) => a - b);
     const floor = frames ? sorted[Math.floor(frames * 0.2)] : 0;
-    const threshold = Math.max(0.012, floor * 3);
+    const threshold = Math.max(0.006, floor * 3);
 
     let first = -1;
     let last = -1;
@@ -105,7 +105,19 @@ export async function prepareAudio(blob: Blob, mimeType: string): Promise<Prepar
     const padFrames = 12;
     const startSample = Math.max(0, (first - padFrames) * FRAME);
     const endSample = Math.min(data.length, (last + 1 + padFrames) * FRAME);
-    const wav = encodeWav(data.subarray(startSample, endSample), TARGET_RATE);
+    // Normalise level: quiet phone mics (AGC is off to avoid amplifying noise)
+    // otherwise hand the STT model barely-audible speech.
+    const seg = data.slice(startSample, endSample);
+    let absPeak = 0;
+    for (let i = 0; i < seg.length; i++) {
+      const a = Math.abs(seg[i]);
+      if (a > absPeak) absPeak = a;
+    }
+    if (absPeak > 0 && absPeak < 0.5) {
+      const gain = Math.min(30, 0.8 / absPeak);
+      for (let i = 0; i < seg.length; i++) seg[i] *= gain;
+    }
+    const wav = encodeWav(seg, TARGET_RATE);
 
     if (wav.size > MAX_WAV_BYTES) {
       return { blob, mimeType, hasSpeech: true, voicedMs: voiced * 20, peak };

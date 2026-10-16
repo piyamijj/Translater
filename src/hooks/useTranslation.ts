@@ -41,7 +41,12 @@ export function useTranslation(): UseTranslationResult {
       // chunk locally if there was only silence / room noise. Nothing is sent
       // to the AI (so nothing can be hallucinated) unless someone really spoke.
       const prepared = await prepareAudio(blob, mimeType);
-      if (!prepared.hasSpeech) return;
+      if (!prepared.hasSpeech) {
+        if (usePolyGlotStore.getState().captureMode === 'push-to-talk') {
+          setLastError('Konuşma algılanamadı. Mikrofona biraz daha yakın ve net konuşun, düğmeyi konuşurken basılı tutun.');
+        }
+        return;
+      }
       blob = prepared.blob;
       mimeType = prepared.mimeType;
 
